@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scheduler – 15分刻みで予定共有</title>
+    <meta name="description" content="二人以上で自分の都合の良い時間を同じURLで共有できる、15分刻みのスケジューラ" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">Scheduler</div>
+      <div class="actions">
+        <button id="addUserBtn" class="btn primary">ユーザー追加</button>
+        <button id="copyRangesBtn" class="btn">選択範囲をコピー</button>
+        <button id="copyLinkBtn" class="btn">URLをコピー</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <aside class="sidebar" id="usersPanel">
+        <h2>ユーザー</h2>
+        <div id="usersList" class="users-list"></div>
+        <div class="legend-note">重なりはストライプで表示</div>
+      </aside>
+
+      <section class="board-section">
+        <div class="board-toolbar">
+          <div class="range-output">
+            <label for="rangesText">選択日時（アクティブユーザー）</label>
+            <textarea id="rangesText" readonly></textarea>
+          </div>
+          <div class="share-output">
+            <label for="shareUrl">共有URL</label>
+            <input id="shareUrl" type="text" readonly />
+          </div>
+        </div>
+
+        <div class="grid-wrapper">
+          <div id="timeHeader" class="time-header"></div>
+          <div id="grid" class="grid" role="grid" aria-label="15分刻みスケジュールグリッド"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <div>ドラッグで選択、再ドラッグで解除。1年先まで表示。</div>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
