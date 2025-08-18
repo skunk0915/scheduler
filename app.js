@@ -46,12 +46,16 @@
     isDragging: false,
     dragMode: 'add', // 'add' or 'remove'
     dragStart: null, // {dateKey, slotIndex}
+    businessHours: { startHour: 9, endHour: 18 }, // [start, end) in hours
+    businessDays: [1,2,3,4,5], // 0:Sun ... 6:Sat; grey-out selectable=false
+    usersPanelOpen: true,
   };
 
   // Persistence via URL hash
   // Format: #u=encodedUsers&sel=encodedSelections
   // encodedUsers: base36 userId:name:color, separated by ','
   // encodedSelections: for each userId, dateKey=commaSeparatedSlotIndices; users separated by '|'
+  // Also store options: bh=start-end (hours), bd=digits (e.g., 12345), up=1/0
 
   const encodeStateToHash = () => {
     const usersEnc = state.users.map((u) => `${u.id.toString(36)}:${encodeURIComponent(u.name)}:${u.color.substring(1)}`).join(',');
@@ -66,7 +70,10 @@
     }
     const selEnc = parts.join('|');
     const activeEnc = state.activeUserId != null ? state.activeUserId.toString(36) : '';
-    const hash = `#u=${usersEnc}&sel=${selEnc}&a=${activeEnc}`;
+    const bh = `${state.businessHours.startHour}-${state.businessHours.endHour}`;
+    const bd = state.businessDays.join('');
+    const up = state.usersPanelOpen ? '1' : '0';
+    const hash = `#u=${usersEnc}&sel=${selEnc}&a=${activeEnc}&bh=${bh}&bd=${bd}&up=${up}`;
     history.replaceState(null, '', `${location.pathname}${hash}`);
     // Update display link
     document.getElementById('shareUrl').value = location.href;
@@ -78,6 +85,9 @@
     const u = params.get('u');
     const sel = params.get('sel');
     const a = params.get('a');
+    const bh = params.get('bh');
+    const bd = params.get('bd');
+    const up = params.get('up');
     if (!u) return false;
 
     const users = [];
@@ -119,6 +129,17 @@
 
     state.users = users;
     state.activeUserId = a ? parseInt(a, 36) : users[0]?.id ?? null;
+    if (bh) {
+      const [sh, eh] = bh.split('-').map((s)=>parseInt(s,10));
+      if (Number.isFinite(sh) && Number.isFinite(eh)) state.businessHours = { startHour: clamp(sh,0,23), endHour: clamp(eh,1,24) };
+    }
+    if (bd) {
+      const days = bd.split('').map(d=>parseInt(d,10)).filter(n=>n>=0&&n<=6);
+      if (days.length>0) state.businessDays = days;
+    }
+    if (up != null) {
+      state.usersPanelOpen = up === '1';
+    }
     return true;
   };
 
@@ -204,14 +225,19 @@
     corner.textContent = '日/時間';
     timeHeaderEl.appendChild(corner);
 
+    let visibleSlotsCount = 0;
     for (let h = 0; h < HOURS_PER_DAY; h++) {
       for (let s = 0; s < SLOTS_PER_HOUR; s++) {
         const cell = document.createElement('div');
-        cell.className = 'cell' + (s === 0 ? ' hour' : '');
+        const inHours = h >= state.businessHours.startHour && h < state.businessHours.endHour;
+        cell.className = 'cell' + (s === 0 ? ' hour' : '') + (!inHours ? ' hidden' : '');
         cell.textContent = s === 0 ? `${h}:00` : '';
-        timeHeaderEl.appendChild(cell);
+        if (inHours) { visibleSlotsCount++; timeHeaderEl.appendChild(cell); }
       }
     }
+    // Update CSS var for visible slots
+    const totalVisible = (state.businessHours.endHour - state.businessHours.startHour) * SLOTS_PER_HOUR;
+    timeHeaderEl.style.setProperty('--visible-slots', String(totalVisible));
   };
 
   const generateDays = () => {
@@ -230,15 +256,20 @@
 
   const renderGrid = () => {
     gridEl.innerHTML = '';
+    const totalVisible = (state.businessHours.endHour - state.businessHours.startHour) * SLOTS_PER_HOUR;
+    gridEl.style.setProperty('--visible-slots', String(totalVisible));
 
     for (const day of days) {
       const dk = dateKey(day);
       const row = document.createElement('div');
       row.className = 'day-row';
+      row.style.setProperty('--visible-slots', String(totalVisible));
 
       const label = document.createElement('div');
       label.className = 'day-label';
       label.textContent = `${dk} (${['日','月','火','水','木','金','土'][day.getDay()]})`;
+      const isBusinessDay = state.businessDays.includes(day.getDay());
+      if (!isBusinessDay) label.classList.add('disabled');
       row.appendChild(label);
 
       for (let i = 0; i < SLOTS_PER_DAY; i++) {
@@ -246,6 +277,15 @@
         slot.className = 'slot';
         slot.dataset.dk = dk;
         slot.dataset.idx = String(i);
+        const hour = Math.floor(i / SLOTS_PER_HOUR);
+        const inHours = hour >= state.businessHours.startHour && hour < state.businessHours.endHour;
+        const isBiz = isBusinessDay;
+        if (!inHours) {
+          slot.classList.add('hidden');
+        }
+        if (!isBiz) {
+          slot.classList.add('disabled');
+        }
         row.appendChild(slot);
       }
 
@@ -335,6 +375,7 @@
   const onPointerDown = (e) => {
     const target = e.target.closest('.slot');
     if (!target) return;
+    if (target.classList.contains('disabled')) return;
     const user = getActiveUser();
     if (!user) return;
 
@@ -362,6 +403,7 @@
 
     const target = e.target.closest('.slot');
     if (!target) return;
+    if (target.classList.contains('disabled')) return;
 
     const dk = target.dataset.dk;
     const idx = parseInt(target.dataset.idx, 10);
@@ -396,6 +438,7 @@
   const onClickGrid = (e) => {
     const target = e.target.closest('.slot');
     if (!target) return;
+    if (target.classList.contains('disabled')) return;
     const user = getActiveUser();
     if (!user) return;
     const dk = target.dataset.dk;
@@ -427,13 +470,126 @@
     try { await navigator.clipboard.writeText(input.value); } catch (e) { document.execCommand('copy'); }
   });
 
+  // Clear all selections for active user
+  document.getElementById('clearSelectionsBtn').addEventListener('click', () => {
+    const user = getActiveUser();
+    if (!user) return;
+    user.selections.clear();
+    refreshSelectionStyles();
+    updateRangesText();
+    encodeStateToHash();
+  });
+
+  // Toggle users panel
+  const appMainEl = document.querySelector('.app-main');
+  const usersPanelEl = document.getElementById('usersPanel');
+  document.getElementById('toggleUsersBtn').addEventListener('click', () => {
+    state.usersPanelOpen = !state.usersPanelOpen;
+    if (state.usersPanelOpen) {
+      appMainEl.classList.remove('collapsed-sidebar');
+      usersPanelEl.classList.remove('slide-out');
+    } else {
+      appMainEl.classList.add('collapsed-sidebar');
+      usersPanelEl.classList.add('slide-out');
+    }
+    encodeStateToHash();
+  });
+
+  // Business hours controls
+  const bhStartEl = document.getElementById('bhStart');
+  const bhEndEl = document.getElementById('bhEnd');
+  const daysInputsEl = document.getElementById('businessDaysInputs');
+
+  const populateHourSelects = () => {
+    const makeOptions = (select) => {
+      select.innerHTML = '';
+      for (let h = 0; h <= 24; h++) {
+        const opt = document.createElement('option');
+        opt.value = String(h);
+        opt.textContent = `${pad2(h)}:00`;
+        select.appendChild(opt);
+      }
+    };
+    makeOptions(bhStartEl);
+    makeOptions(bhEndEl);
+    bhStartEl.value = String(state.businessHours.startHour);
+    bhEndEl.value = String(state.businessHours.endHour);
+  };
+
+  const renderBusinessDaysInputs = () => {
+    const dayNames = ['日','月','火','水','木','金','土'];
+    daysInputsEl.innerHTML = '';
+    for (let d = 0; d < 7; d++) {
+      const id = `bd-${d}`;
+      const label = document.createElement('label');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = id;
+      cb.value = String(d);
+      cb.checked = state.businessDays.includes(d);
+      cb.addEventListener('change', () => {
+        const val = parseInt(cb.value, 10);
+        if (cb.checked) {
+          if (!state.businessDays.includes(val)) state.businessDays.push(val);
+        } else {
+          state.businessDays = state.businessDays.filter(x => x !== val);
+        }
+        state.businessDays.sort((a,b)=>a-b);
+        renderGrid();
+        encodeStateToHash();
+      });
+      label.appendChild(cb);
+      const span = document.createElement('span');
+      span.textContent = dayNames[d];
+      label.appendChild(span);
+      daysInputsEl.appendChild(label);
+    }
+  };
+
+  bhStartEl.addEventListener('change', () => {
+    const v = parseInt(bhStartEl.value, 10);
+    if (Number.isFinite(v)) state.businessHours.startHour = clamp(v, 0, 23);
+    // Ensure start < end
+    if (state.businessHours.startHour >= state.businessHours.endHour) {
+      state.businessHours.endHour = clamp(state.businessHours.startHour + 1, 1, 24);
+      bhEndEl.value = String(state.businessHours.endHour);
+    }
+    renderTimeHeader();
+    renderGrid();
+    encodeStateToHash();
+  });
+  bhEndEl.addEventListener('change', () => {
+    const v = parseInt(bhEndEl.value, 10);
+    if (Number.isFinite(v)) state.businessHours.endHour = clamp(v, 1, 24);
+    if (state.businessHours.startHour >= state.businessHours.endHour) {
+      state.businessHours.startHour = clamp(state.businessHours.endHour - 1, 0, 23);
+      bhStartEl.value = String(state.businessHours.startHour);
+    }
+    renderTimeHeader();
+    renderGrid();
+    encodeStateToHash();
+  });
+
   // Init
   renderTimeHeader();
   renderGrid();
   const restored = decodeStateFromHash();
+  // Initialize controls after potential decode
+  populateHourSelects();
+  renderBusinessDaysInputs();
+  // Reflect users panel state
+  const appMainElInit = document.querySelector('.app-main');
+  const usersPanelElInit = document.getElementById('usersPanel');
+  if (!state.usersPanelOpen) {
+    appMainElInit.classList.add('collapsed-sidebar');
+    usersPanelElInit.classList.add('slide-out');
+  }
   if (!restored) {
     createUser('ユーザー1');
   } else {
+    // Re-render to reflect restored business settings
+    renderTimeHeader();
+    renderGrid();
     renderUsers();
     refreshSelectionStyles();
     updateRangesText();

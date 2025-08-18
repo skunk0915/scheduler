@@ -14,8 +14,10 @@
     <header class="app-header">
       <div class="brand">Scheduler</div>
       <div class="actions">
+        <button id="toggleUsersBtn" class="btn">ユーザー</button>
         <button id="addUserBtn" class="btn primary">ユーザー追加</button>
         <button id="copyRangesBtn" class="btn">選択範囲をコピー</button>
+        <button id="clearSelectionsBtn" class="btn">全クリア</button>
         <button id="copyLinkBtn" class="btn">URLをコピー</button>
       </div>
     </header>
@@ -36,6 +38,21 @@
           <div class="share-output">
             <label for="shareUrl">共有URL</label>
             <input id="shareUrl" type="text" readonly />
+          </div>
+        </div>
+
+        <div class="board-controls">
+          <div class="business-hours">
+            <label>営業時間</label>
+            <div class="hours-inputs">
+              <select id="bhStart"></select>
+              <span>〜</span>
+              <select id="bhEnd"></select>
+            </div>
+          </div>
+          <div class="business-days">
+            <label>営業曜日</label>
+            <div class="days-inputs" id="businessDaysInputs"></div>
           </div>
         </div>
 
