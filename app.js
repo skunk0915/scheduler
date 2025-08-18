@@ -18,6 +18,7 @@
     const mm = pad2(d.getMinutes());
     return `${y}-${m}-${day} ${hh}:${mm}`;
   };
+  const formatTime = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   const parseDateKey = (key) => {
     // key: YYYY-MM-DD
     const [y, m, d] = key.split('-').map((s) => parseInt(s, 10));
@@ -210,7 +211,7 @@
   };
 
   const rangesToText = (ranges) => {
-    return ranges.map(r => `${formatDate(r.startDate)} - ${formatDate(r.endDate)}`).join('\n');
+    return ranges.map(r => `${formatDate(r.startDate)} - ${formatTime(r.endDate)}`).join('\n');
   };
 
   const getCommonSelectedRanges = () => {
