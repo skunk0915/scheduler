@@ -122,6 +122,11 @@ body {
 .slot.hidden { display: none; }
 .slot.off-hours { background: #fafafa; }
 
+/* Hour boundary (":00") lines */
+.time-header .cell.hour { border-left-color: #000; }
+/* The first slot of each hour has a black left border. There is one day label cell before slots, so use 4n+2. */
+.day-row > .slot:nth-child(4n+2) { border-left-color: #000; }
+
 /* Selection colors per user via CSS variables */
 .day-row { --u-color: #22c55e; }
 .slot.selected { background: color-mix(in oklab, var(--u-color) 35%, white); }
