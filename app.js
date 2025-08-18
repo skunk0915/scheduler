@@ -213,6 +213,51 @@
     return ranges.map(r => `${formatDate(r.startDate)} - ${formatDate(r.endDate)}`).join('\n');
   };
 
+  const getCommonSelectedRanges = () => {
+    // Intersect selections across all users per day and emit contiguous ranges
+    if (state.users.length === 0) return [];
+    // Build a map: dk -> Set of indices selected by everyone
+    const allUsers = state.users;
+    const dayKeys = new Set();
+    for (const u of allUsers) {
+      for (const dk of u.selections.keys()) dayKeys.add(dk);
+    }
+    const resultRanges = [];
+    for (const dk of dayKeys) {
+      let commonSet = null;
+      for (const u of allUsers) {
+        const set = u.selections.get(dk) || new Set();
+        if (commonSet == null) {
+          commonSet = new Set(set);
+        } else {
+          // intersect
+          for (const val of [...commonSet]) {
+            if (!set.has(val)) commonSet.delete(val);
+          }
+        }
+        if (commonSet.size === 0) break;
+      }
+      if (!commonSet || commonSet.size === 0) continue;
+      const sorted = [...commonSet].sort((a,b)=>a-b);
+      let start = sorted[0];
+      for (let i = 1; i <= sorted.length; i++) {
+        if (i === sorted.length || sorted[i] !== sorted[i-1] + 1) {
+          const end = sorted[i-1];
+          const day = parseDateKey(dk);
+          const startDate = new Date(day);
+          startDate.setMinutes(start * SLOT_MINUTES);
+          const endDate = new Date(day);
+          endDate.setMinutes((end + 1) * SLOT_MINUTES);
+          resultRanges.push({ dk, startIdx: start, endIdx: end, startDate, endDate });
+          start = sorted[i];
+        }
+      }
+    }
+    // Sort by startDate
+    resultRanges.sort((a,b)=>a.startDate - b.startDate);
+    return resultRanges;
+  };
+
   // Rendering
   const timeHeaderEl = document.getElementById('timeHeader');
   const gridEl = document.getElementById('grid');
@@ -363,10 +408,19 @@
 
   const updateRangesText = () => {
     const textarea = document.getElementById('rangesText');
+    const commonTextarea = document.getElementById('commonRangesText');
     const user = getActiveUser();
-    if (!user) { textarea.value = ''; return; }
+    if (!user) {
+      textarea.value = '';
+      if (commonTextarea) commonTextarea.value = '';
+      return;
+    }
     const ranges = getSelectedRangesForUser(user);
     textarea.value = rangesToText(ranges);
+    if (commonTextarea) {
+      const commonRanges = getCommonSelectedRanges();
+      commonTextarea.value = rangesToText(commonRanges);
+    }
   };
 
   // Event handling for drag selection

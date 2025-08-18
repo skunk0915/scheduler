@@ -71,7 +71,7 @@ body {
 .user-name { flex: 1; }
 
 .board-section { display: flex; flex-direction: column; gap: 12px; }
-.board-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.board-toolbar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 .range-output textarea { width: 100%; min-height: 64px; }
 .share-output input { width: 100%; }
 .legend-note { font-size: 12px; color: #6b7280; }
