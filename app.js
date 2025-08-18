@@ -512,18 +512,29 @@
     createUser(name);
   });
 
-  document.getElementById('copyRangesBtn').addEventListener('click', async () => {
+  // Copy buttons on labels
+  document.getElementById('copyRangesTextBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
     const textarea = document.getElementById('rangesText');
     textarea.select();
     textarea.setSelectionRange(0, textarea.value.length);
-    try { await navigator.clipboard.writeText(textarea.value); } catch (e) { document.execCommand('copy'); }
+    try { await navigator.clipboard.writeText(textarea.value); } catch (err) { document.execCommand('copy'); }
   });
 
-  document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+  document.getElementById('copyCommonRangesTextBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const textarea = document.getElementById('commonRangesText');
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    try { await navigator.clipboard.writeText(textarea.value); } catch (err) { document.execCommand('copy'); }
+  });
+
+  document.getElementById('copyShareUrlBtn').addEventListener('click', async (e) => {
+    e.stopPropagation();
     const input = document.getElementById('shareUrl');
     input.select();
     input.setSelectionRange(0, input.value.length);
-    try { await navigator.clipboard.writeText(input.value); } catch (e) { document.execCommand('copy'); }
+    try { await navigator.clipboard.writeText(input.value); } catch (err) { document.execCommand('copy'); }
   });
 
   // Clear all selections for active user

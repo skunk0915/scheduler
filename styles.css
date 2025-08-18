@@ -76,6 +76,18 @@ body {
 .share-output input { width: 100%; }
 .legend-note { font-size: 12px; color: #6b7280; }
 
+/* Labels with inline copy button */
+.label-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.label-with-action .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 .board-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
