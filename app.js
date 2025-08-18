@@ -372,8 +372,8 @@
         return;
       }
 
-      // Build equal top-to-bottom bands for overlaps. Use up to 4 colors for clarity.
-      const baseColors = selectedBy.map(u => u.color).slice(0, 4);
+      // Build equal top-to-bottom bands for overlaps using all involved users' colors (unlimited segments).
+      const baseColors = selectedBy.map(u => u.color);
       const softColors = baseColors.map(c => `color-mix(in oklab, ${c} 40%, white)`);
       const segments = softColors.length;
       const stepPercent = 100 / segments;
