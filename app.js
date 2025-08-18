@@ -371,16 +371,18 @@
         return;
       }
 
-      // Build a striped gradient for overlaps. Cycle through up to 4 colors for clarity.
-      const colors = selectedBy.map(u => u.color).slice(0, 4);
-      const stripeWidthPx = 8;
-      let stops = [];
-      for (let i = 0; i < colors.length; i++) {
-        const start = i * stripeWidthPx;
-        const end = (i + 1) * stripeWidthPx;
-        stops.push(`${colors[i]} ${start}px ${end}px`);
+      // Build equal top-to-bottom bands for overlaps. Use up to 4 colors for clarity.
+      const baseColors = selectedBy.map(u => u.color).slice(0, 4);
+      const softColors = baseColors.map(c => `color-mix(in oklab, ${c} 40%, white)`);
+      const segments = softColors.length;
+      const stepPercent = 100 / segments;
+      const stops = [];
+      for (let i = 0; i < segments; i++) {
+        const start = (i * stepPercent).toFixed(2);
+        const end = ((i + 1) * stepPercent).toFixed(2);
+        stops.push(`${softColors[i]} ${start}% ${end}%`);
       }
-      const gradient = `repeating-linear-gradient(45deg, ${stops.join(', ')})`;
+      const gradient = `linear-gradient(to bottom, ${stops.join(', ')})`;
       cell.style.background = gradient;
     });
   };
