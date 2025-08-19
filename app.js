@@ -53,6 +53,7 @@
     businessDays: [1,2,3,4,5], // 0:Sun ... 6:Sat; grey-out selectable=false
     usersPanelOpen: true,
     selectionMode: 'ok', // 'ok' (選択=可能) or 'ng' (選択=ダメ)
+    selectionLocked: false, // true: disable selection gestures; drag scrolls page
   };
 
   // Cookie helpers
@@ -453,6 +454,9 @@
 
       const label = document.createElement('div');
       label.className = 'day-label';
+      // Make day-label always act as vertical scroll handle
+      label.setAttribute('role', 'button');
+      label.setAttribute('aria-label', 'この日のラベル。上下スクロールができます');
       // Year removed from day label
       const mm = pad2(day.getMonth() + 1);
       const dd = pad2(day.getDate());
@@ -708,6 +712,7 @@
   };
 
   const onPointerDown = (e) => {
+    if (state.selectionLocked) return; // do not start selection
     // Use hit-testing to robustly find the slot even if the event target is a wrapper/border
     const target = getSlotUnderPoint(e.clientX, e.clientY) || e.target.closest('.slot');
     if (!target) return;
@@ -742,6 +747,7 @@
   };
 
   const onPointerMove = (e) => {
+    if (state.selectionLocked) return;
     if (!state.isDragging) return;
     // Prevent default actions during drag to avoid text selection/scroll hijack
     e.preventDefault();
@@ -794,6 +800,7 @@
   };
 
   const onClickGrid = (e) => {
+    if (state.selectionLocked) return;
     if (suppressNextClick) {
       suppressNextClick = false;
       e.preventDefault?.();
@@ -815,6 +822,38 @@
   };
 
   // Buttons
+  // Floating: selection lock and scroll top
+  const lockBtn = document.getElementById('selectionLockBtn');
+  const scrollTopBtn = document.getElementById('scrollTopBtn');
+
+  const applyLockUi = () => {
+    if (!lockBtn) return;
+    lockBtn.setAttribute('aria-pressed', state.selectionLocked ? 'true' : 'false');
+    lockBtn.classList.toggle('locked', state.selectionLocked);
+    lockBtn.textContent = state.selectionLocked ? '🔒' : '🔓';
+    document.documentElement.classList.toggle('selection-locked', state.selectionLocked);
+  };
+
+  lockBtn?.addEventListener('click', () => {
+    state.selectionLocked = !state.selectionLocked;
+    applyLockUi();
+  });
+
+  // Show top button when scrolled down a bit
+  const getScrollTop = () => {
+    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  };
+  const updateTopBtnVisibility = () => {
+    if (!scrollTopBtn) return;
+    const show = getScrollTop() > 240;
+    scrollTopBtn.classList.toggle('hidden', !show);
+  };
+  window.addEventListener('scroll', updateTopBtnVisibility, { passive: true });
+  scrollTopBtn?.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  // Initialize visibility once
+  updateTopBtnVisibility();
   document.getElementById('addUserBtn').addEventListener('click', () => {
     const defaultName = `ユーザー${state.users.length + 1}`;
     const input = prompt('ユーザー名を入力', defaultName);
@@ -1072,6 +1111,9 @@
   }
   updateModeButton();
   updateActiveUserInline();
+  applyLockUi();
+  // Ensure top button reflects current scroll on load
+  updateTopBtnVisibility();
 
   // Global grid events
   gridEl.addEventListener('pointerdown', onPointerDown);

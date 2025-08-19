@@ -174,6 +174,8 @@ input, textarea, select, button { font-size: 16px; }
 .day-label {
   position: sticky; left: 0; background: #ffffff; z-index: 1;
   border-right: 1px solid #e5e7eb; padding: 8px; font-weight: 600;
+  /* Always allow vertical scroll gesture from day label */
+  overscroll-behavior-y: contain;
 }
 .day-label.disabled { color: #9ca3af; background: #f9fafb; }
 .slot { border-left: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; min-height: 22px; cursor: pointer; }
@@ -245,8 +247,40 @@ input, textarea, select, button { font-size: 16px; }
 /* Drag surface should not trigger scrolling/zooming */
 .slot { touch-action: none; }
 
-/* Allow horizontal panning from headers/labels to scroll timeline */
-.time-header, .day-label { touch-action: pan-x; }
+/* Allow horizontal panning from header to scroll timeline */
+.time-header { touch-action: pan-x; }
+/* Day label should always be a vertical scroll area */
+.day-label { touch-action: pan-y; }
+
+/* Floating action buttons */
+.floating-controls {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1100;
+}
+.fab {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  cursor: pointer;
+  font-size: 18px;
+}
+.fab:active { transform: translateY(1px); }
+.fab.hidden { display: none; }
+.fab.locked { background: #111827; color: #fff; border-color: #111827; }
+
+/* While selection is locked, allow both-axis panning on slots for page/track scroll */
+.selection-locked .slot { touch-action: pan-x pan-y; cursor: default; }
+/* Help broader surfaces allow panning when locked */
+.selection-locked .grid,
+.selection-locked .day-row { touch-action: pan-x pan-y; }
 
 /* While dragging, force-disable selection globally as a safety net */
 html.is-dragging, html.is-dragging * {
