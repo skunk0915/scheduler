@@ -140,9 +140,9 @@ body {
 .slot.off-hours { background: #fafafa; }
 
 /* Hour boundary (":00") lines */
-.time-header .cell.hour { border-left-color: #000; }
+.time-header .cell.hour { border-left-color: #ccc; }
 /* The first slot of each hour has a black left border. There is one day label cell before slots, so use 4n+2. */
-.day-row > .slot:nth-child(4n+2) { border-left-color: #000; }
+.day-row > .slot:nth-child(4n+2) { border-left-color: #ccc; }
 
 /* Selection colors per user via CSS variables */
 .day-row { --u-color: #22c55e; }

@@ -12,13 +12,13 @@
   const pad2 = (n) => String(n).padStart(2, '0');
   const DAY_NAMES = ['日','月','火','水','木','金','土'];
   const formatDate = (d) => {
-    const y = d.getFullYear();
+    // Year removed from display (e.g., "MM-DD (曜) HH:MM")
     const m = pad2(d.getMonth() + 1);
     const day = pad2(d.getDate());
     const hh = pad2(d.getHours());
     const mm = pad2(d.getMinutes());
     const weekday = DAY_NAMES[d.getDay()];
-    return `${y}-${m}-${day} (${weekday}) ${hh}:${mm}`;
+    return `${m}-${day} (${weekday}) ${hh}:${mm}`;
   };
   const formatTime = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   const parseDateKey = (key) => {
@@ -426,7 +426,10 @@
 
       const label = document.createElement('div');
       label.className = 'day-label';
-      label.textContent = `${dk} (${DAY_NAMES[day.getDay()]})`;
+      // Year removed from day label
+      const mm = pad2(day.getMonth() + 1);
+      const dd = pad2(day.getDate());
+      label.textContent = `${mm}-${dd} (${DAY_NAMES[day.getDay()]})`;
       const isBusinessDay = state.businessDays.includes(day.getDay());
       if (!isBusinessDay) label.classList.add('disabled');
       row.appendChild(label);
