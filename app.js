@@ -54,6 +54,7 @@
     usersPanelOpen: false,
     selectionMode: 'ok', // 'ok' (選択=可能) or 'ng' (選択=ダメ)
     selectionLocked: false, // true: disable selection gestures; drag scrolls page
+    editingUserNames: false, // true: show inputs to edit all user names
   };
 
   // Cookie helpers
@@ -578,15 +579,33 @@
     for (const u of state.users) {
       const item = document.createElement('div');
       item.className = 'user-item' + (u.id === state.activeUserId ? ' active' : '');
-      item.onclick = () => setActiveUser(u.id);
+      if (!state.editingUserNames) {
+        item.onclick = () => setActiveUser(u.id);
+      }
 
       const swatch = document.createElement('div');
       swatch.className = 'user-swatch';
       swatch.style.background = u.color;
 
-      const name = document.createElement('div');
-      name.className = 'user-name';
-      name.textContent = u.name;
+      let nameEl;
+      if (state.editingUserNames) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'user-name-input';
+        input.value = u.name;
+        input.placeholder = 'ユーザー名';
+        // Update state live as user types
+        input.addEventListener('input', () => {
+          u.name = input.value;
+          updateActiveUserInline();
+        });
+        nameEl = input;
+      } else {
+        const name = document.createElement('div');
+        name.className = 'user-name';
+        name.textContent = u.name;
+        nameEl = name;
+      }
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -602,7 +621,7 @@
       });
 
       item.appendChild(swatch);
-      item.appendChild(name);
+      item.appendChild(nameEl);
       item.appendChild(removeBtn);
       usersListEl.appendChild(item);
     }
@@ -610,6 +629,31 @@
     // Update inline active user indicator beside the label
     updateActiveUserInline();
   };
+
+  // Edit/Confirm button for user names
+  const editUserNamesBtn = document.getElementById('editUserNamesBtn');
+  const updateEditUserNamesButton = () => {
+    if (!editUserNamesBtn) return;
+    editUserNamesBtn.textContent = state.editingUserNames ? '確定' : 'ユーザー名変更';
+  };
+  editUserNamesBtn?.addEventListener('click', () => {
+    if (state.editingUserNames) {
+      // Confirm: trim empty names to a default
+      const defaultPrefix = 'ユーザー';
+      state.users.forEach((u, idx) => {
+        const trimmed = (u.name ?? '').trim();
+        u.name = trimmed === '' ? `${defaultPrefix}${idx + 1}` : trimmed;
+      });
+      state.editingUserNames = false;
+      renderUsers();
+      updateRangesText();
+      encodeStateToHash();
+    } else {
+      state.editingUserNames = true;
+      renderUsers();
+    }
+    updateEditUserNamesButton();
+  });
 
   const updateRangesText = () => {
     const textarea = document.getElementById('rangesText');
@@ -967,6 +1011,8 @@
     usersPanelEl.setAttribute('aria-hidden', open ? 'false' : 'true');
     overlayBackdropEl?.classList.toggle('open', open);
     overlayBackdropEl?.setAttribute('aria-hidden', open ? 'false' : 'true');
+    // On desktop, reserve space and keep board interactive while panel is visible
+    document.body.classList.toggle('users-panel-open', open);
     encodeStateToHash();
   };
   toggleUsersBtnEl?.addEventListener('click', () => toggleOverlay(!state.usersPanelOpen));
@@ -1106,6 +1152,7 @@
   usersPanelElInit.setAttribute('aria-hidden', state.usersPanelOpen ? 'false' : 'true');
   overlayBackdropEl?.classList.toggle('open', !!state.usersPanelOpen);
   overlayBackdropEl?.setAttribute('aria-hidden', state.usersPanelOpen ? 'false' : 'true');
+  document.body.classList.toggle('users-panel-open', !!state.usersPanelOpen);
   if (!restored) {
     createUser('ユーザー1');
   } else {
@@ -1122,6 +1169,21 @@
   applyLockUi();
   // Ensure top button reflects current scroll on load
   updateTopBtnVisibility();
+  // Reflect edit/confirm button state
+  updateEditUserNamesButton();
+
+  // One-time intro: briefly show users panel for 0.5s on first visit
+  const introSeen = getCookie('usersPanelIntroSeen') === '1';
+  if (!introSeen) {
+    setCookie('usersPanelIntroSeen', '1', 3650);
+    // If state restored it open, do not auto-close it
+    if (!state.usersPanelOpen) {
+      toggleOverlay(true);
+      setTimeout(() => {
+        toggleOverlay(false);
+      }, 1000);
+    }
+  }
 
   // Global grid events
   gridEl.addEventListener('pointerdown', onPointerDown);

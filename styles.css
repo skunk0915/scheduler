@@ -44,6 +44,15 @@ body {
 .user-swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #d1d5db; }
 .user-name { flex: 1; }
 
+/* Inline edit input for user name */
+.user-name-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
 /* Remove button at right side of user item */
 .user-remove {
   border: none;
@@ -60,7 +69,7 @@ body {
 }
 
 .board-section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.board-toolbar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.board-toolbar {  grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 .range-output textarea { width: 100%; min-height: 64px; }
 .share-output input { width: 100%; }
 .legend-note { font-size: 12px; color: #6b7280; }
@@ -101,24 +110,25 @@ body {
 .tab.active { background: white; border: 1px solid #d1d5db; color: #111827; }
 
 .board-controls {
-  display: grid;
+  
   grid-template-columns: 1fr 1fr 1.2fr;
   gap: 12px;
 }
-.hours-inputs, .days-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hours-inputs, .days-inputs { display: flex; align-items: center; gap: 8px;  }
 /* Business days as colored toggle pills */
 .days-inputs label {
   position: relative;
-  display: inline-flex;
+  flex: 1;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: .5em;
+  padding: .5em;
   border: 1px solid #e5e7eb;
   border-radius: 999px;
   background: #f3f4f6;
   color: #374151;
   cursor: pointer;
   transition: background .2s ease, color .2s ease, border-color .2s ease;
+  text-align: center;
 }
 .days-inputs input[type="checkbox"] {
   position: absolute;
@@ -254,7 +264,7 @@ input, textarea, select, button { font-size: 16px; }
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1000;
+  z-index: 1600; /* Above overlay menu (1200) */
   padding: 14px 18px;
   border-radius: 12px;
   background: rgba(17, 24, 39, 0.9);
@@ -323,4 +333,17 @@ html.is-dragging, html.is-dragging * {
   -webkit-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
+}
+
+/* --- Desktop behaviors for users panel --- */
+@media (min-width: 1025px) {
+  /* Do not dim or block page when panel is open on desktop */
+  .overlay-backdrop {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  /* When panel is open, reserve space on the right so the board remains fully usable */
+  body.users-panel-open .app-main {
+    margin-right: min(92vw, 360px);
+  }
 }
