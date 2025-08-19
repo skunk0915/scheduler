@@ -230,3 +230,27 @@ input, textarea, select, button { font-size: 16px; }
 .mode-toast.fade-out {
   opacity: 0;
 }
+
+/* --- iOS drag/selection hardening --- */
+/* Prevent text selection, callout, and highlight inside the interactive grid */
+.grid, .grid *,
+.time-header, .time-header *,
+.day-label {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Drag surface should not trigger scrolling/zooming */
+.slot { touch-action: none; }
+
+/* Allow horizontal panning from headers/labels to scroll timeline */
+.time-header, .day-label { touch-action: pan-x; }
+
+/* While dragging, force-disable selection globally as a safety net */
+html.is-dragging, html.is-dragging * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}

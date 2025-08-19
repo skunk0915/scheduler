@@ -692,9 +692,24 @@
 
   // Event handling for drag selection
   let lastHoverCell = null;
+  let suppressNextClick = false;
+  let gestureChanged = false;
+
+  const getSlotUnderPoint = (x, y) => {
+    const stack = (document.elementsFromPoint?.(x, y)) || [];
+    for (const el of stack) {
+      if (el && el.classList && el.classList.contains('slot')) return el;
+      if (el && typeof el.closest === 'function') {
+        const maybe = el.closest('.slot');
+        if (maybe) return maybe;
+      }
+    }
+    return null;
+  };
 
   const onPointerDown = (e) => {
-    const target = e.target.closest('.slot');
+    // Use hit-testing to robustly find the slot even if the event target is a wrapper/border
+    const target = getSlotUnderPoint(e.clientX, e.clientY) || e.target.closest('.slot');
     if (!target) return;
     if (target.classList.contains('disabled')) return;
     const user = getActiveUser();
@@ -704,25 +719,40 @@
     const dk = target.dataset.dk;
     const idx = parseInt(target.dataset.idx, 10);
 
+    // Determine mode based on the cell truly under the finger, not just event target
     const hasAlready = (user.selections.get(dk)?.has(idx)) || false;
     state.dragMode = hasAlready ? 'remove' : 'add';
     state.isDragging = true;
+    // Disable text selection system-wide while dragging (iOS safety)
+    document.documentElement.classList.add('is-dragging');
     state.dragStart = { dateKey: dk, slotIndex: idx };
+    // Capture pointer so we keep getting move events even if the finger leaves the grid
+    try { gridEl.setPointerCapture?.(e.pointerId); } catch {}
 
+    // Ensure the initial cell gets toggled even on very short taps
     toggleSelection(user, dk, idx, hasAlready ? 'remove' : 'add');
+    gestureChanged = true;
     refreshSelectionStyles();
     updateRangesText();
     encodeStateToHash();
 
     lastHoverCell = target;
+    // We handled selection via pointer; prevent the subsequent click from toggling back
+    suppressNextClick = true;
   };
 
   const onPointerMove = (e) => {
     if (!state.isDragging) return;
+    // Prevent default actions during drag to avoid text selection/scroll hijack
+    e.preventDefault();
+    // Clear any accidental selection ranges (iOS sometimes creates one)
+    try { document.getSelection()?.removeAllRanges(); } catch {}
     const user = getActiveUser();
     if (!user) return;
 
-    const target = e.target.closest('.slot');
+    // Determine the slot under the finger using coordinates (works with pointer capture)
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const target = el?.closest?.('.slot');
     if (!target) return;
     if (target.classList.contains('disabled')) return;
 
@@ -744,6 +774,7 @@
     // Reset to which state? For performance, apply incremental: apply to range from min(last, current) to max()
     // Simpler approach: apply to entire range each move
     selectRange(user, dk, start.slotIndex, idx, remove);
+    gestureChanged = true;
     refreshSelectionStyles();
     updateRangesText();
     encodeStateToHash();
@@ -751,12 +782,24 @@
     lastHoverCell = target;
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e) => {
+    const wasDragging = state.isDragging;
     state.isDragging = false;
     state.dragStart = null;
+    document.documentElement.classList.remove('is-dragging');
+    try { gridEl.releasePointerCapture?.(e.pointerId); } catch {}
+    // Avoid click toggling only if we actually changed selection during this gesture
+    if (wasDragging && gestureChanged) suppressNextClick = true;
+    gestureChanged = false;
   };
 
   const onClickGrid = (e) => {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      return;
+    }
     const target = e.target.closest('.slot');
     if (!target) return;
     if (target.classList.contains('disabled')) return;
@@ -1034,5 +1077,6 @@
   gridEl.addEventListener('pointerdown', onPointerDown);
   gridEl.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
   gridEl.addEventListener('click', onClickGrid);
 })();
