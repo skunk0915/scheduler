@@ -99,9 +99,14 @@ body {
   gap: 8px;
 }
 .label-with-action #activeUserInline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .5em;
+    background: #f3f4f6;
+    border-radius: 5px;
+    padding: .5em;
+    border: 1px solid #e5e7eb;
 }
 .label-with-action #activeUserSwatch {
   width: 14px;
