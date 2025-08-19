@@ -1,5 +1,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+body { overscroll-behavior-x: contain; overflow-x: hidden; }
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -55,6 +57,7 @@ body {
   flex-direction: column;
   gap: 8px;
   transition: transform 0.25s ease, opacity 0.25s ease;
+  min-width: 0;
 }
 .sidebar.slide-out {
   transform: translateX(-120%);
@@ -85,7 +88,7 @@ body {
   color: #ef4444;
 }
 
-.board-section { display: flex; flex-direction: column; gap: 12px; }
+.board-section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .board-toolbar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 .range-output textarea { width: 100%; min-height: 64px; }
 .share-output input { width: 100%; }
@@ -97,6 +100,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 .label-with-action #activeUserInline {
     display: inline-flex;
@@ -136,6 +140,9 @@ body {
 /* Date controls */
 .date-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .date-inputs input[type="date"] { padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; }
+
+/* Avoid iOS Safari auto-zoom on focus */
+input, textarea, select, button { font-size: 16px; }
 
 .grid-wrapper {
   border: 1px solid #e5e7eb;
@@ -193,6 +200,9 @@ body {
 /* Responsive */
 @media (max-width: 1024px) {
   .app-main { grid-template-columns: 1fr; }
+  .app-header { flex-wrap: wrap; }
+  .actions { flex-wrap: wrap; }
+  .board-toolbar { grid-template-columns: 1fr; }
   .time-header { grid-template-columns: 80px repeat(var(--visible-slots, 96), minmax(16px, 1fr)); }
   .day-row { grid-template-columns: 80px repeat(var(--visible-slots, 96), minmax(16px, 1fr)); }
   .day-label { font-size: 12px; }
