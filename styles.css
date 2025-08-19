@@ -127,11 +127,15 @@ body {
 
 .board-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1.2fr;
   gap: 12px;
 }
 .hours-inputs, .days-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .days-inputs label { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; }
+
+/* Date controls */
+.date-inputs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.date-inputs input[type="date"] { padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; }
 
 .grid-wrapper {
   border: 1px solid #e5e7eb;
@@ -193,6 +197,7 @@ body {
   .day-row { grid-template-columns: 80px repeat(var(--visible-slots, 96), minmax(16px, 1fr)); }
   .day-label { font-size: 12px; }
   .slot { min-height: 20px; }
+  .board-controls { grid-template-columns: 1fr; }
 }
 
 /* Centered transient toast for mode switching */

@@ -484,6 +484,32 @@
     refreshSelectionStyles();
   };
 
+  // Helpers for date controls
+  const clampDateToWindow = (date) => {
+    const start = days[0];
+    const end = days[days.length - 1];
+    if (date < start) return new Date(start);
+    if (date > end) return new Date(end);
+    return date;
+  };
+
+  const setAllDayForUser = (user, dk, isOk) => {
+    const day = parseDateKey(dk);
+    if (!state.businessDays.includes(day.getDay())) return; // respect non-business days
+    // Set within business hours only
+    const startIndex = state.businessHours.startHour * SLOTS_PER_HOUR;
+    const endIndex = state.businessHours.endHour * SLOTS_PER_HOUR - 1;
+    if (endIndex < startIndex) return;
+    let set = user.selections.get(dk);
+    if (!set) { set = new Set(); user.selections.set(dk, set); }
+    // Determine whether to add indices to represent OK or NG depending on global mode
+    const selectingMeansOk = state.selectionMode === 'ok';
+    const shouldAdd = selectingMeansOk ? isOk : !isOk; // if mode=ok, add when isOk; if mode=ng, add when NG
+    for (let i = startIndex; i <= endIndex; i++) {
+      if (shouldAdd) set.add(i); else set.delete(i);
+    }
+  };
+
   const refreshSelectionStyles = () => {
     // For each slot cell, compute which users have selected it and color accordingly.
     // - 0 users: clear styling
@@ -756,6 +782,63 @@
     const finalName = input.trim() === '' ? defaultName : input.trim();
     createUser(finalName);
   });
+
+  // Date controls: calendar + all-day OK/NG
+  const calendarEl = document.getElementById('calendarDate');
+  const allDayOkBtn = document.getElementById('allDayOkBtn');
+  const allDayNgBtn = document.getElementById('allDayNgBtn');
+
+  const ensureCalendarDefault = () => {
+    if (!calendarEl) return;
+    if (!calendarEl.value) {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = pad2(today.getMonth() + 1);
+      const d = pad2(today.getDate());
+      calendarEl.value = `${y}-${m}-${d}`;
+    }
+    // Clamp min/max to generated window for UX
+    const start = days[0];
+    const end = days[days.length - 1];
+    const min = `${start.getFullYear()}-${pad2(start.getMonth()+1)}-${pad2(start.getDate())}`;
+    const max = `${end.getFullYear()}-${pad2(end.getMonth()+1)}-${pad2(end.getDate())}`;
+    calendarEl.min = min;
+    calendarEl.max = max;
+  };
+
+  ensureCalendarDefault();
+
+  const getCalendarDateKey = () => {
+    const val = calendarEl?.value;
+    if (!val) return null; // 'YYYY-MM-DD'
+    // Normalize into Date then back to key to avoid timezone surprises
+    const [y,m,d] = val.split('-').map(s=>parseInt(s,10));
+    const dt = clampDateToWindow(new Date(y, m-1, d));
+    return dateKey(dt);
+  };
+
+  const handleAllDay = (targetIsOk) => {
+    const user = getActiveUser();
+    if (!user) return;
+    const dk = getCalendarDateKey();
+    if (!dk) return;
+    setAllDayForUser(user, dk, targetIsOk);
+    refreshSelectionStyles();
+    updateRangesText();
+    encodeStateToHash();
+    // Scroll into view the row of that day for convenience. Find the day-row matching dk by checking first slot's dataset.dk
+    const dayRows = gridEl.querySelectorAll('.day-row');
+    for (const r of dayRows) {
+      const firstSlot = r.querySelector('.slot');
+      if (firstSlot && firstSlot.dataset.dk === dk) {
+        r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        break;
+      }
+    }
+  };
+
+  allDayOkBtn?.addEventListener('click', () => handleAllDay(true));
+  allDayNgBtn?.addEventListener('click', () => handleAllDay(false));
 
   // Copy buttons on labels
   document.getElementById('copyRangesTextBtn').addEventListener('click', async (e) => {
