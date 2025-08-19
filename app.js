@@ -50,6 +50,26 @@
     businessHours: { startHour: 9, endHour: 18 }, // [start, end) in hours
     businessDays: [1,2,3,4,5], // 0:Sun ... 6:Sat; grey-out selectable=false
     usersPanelOpen: true,
+    selectionMode: 'ok', // 'ok' (選択=可能) or 'ng' (選択=ダメ)
+  };
+
+  // Cookie helpers
+  const setCookie = (name, value, days) => {
+    const d = new Date();
+    d.setTime(d.getTime() + (days*24*60*60*1000));
+    const expires = `expires=${d.toUTCString()}`;
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+  };
+  const getCookie = (name) => {
+    const target = `${encodeURIComponent(name)}=`;
+    const pairs = document.cookie.split(';');
+    for (let c of pairs) {
+      c = c.trim();
+      if (c.startsWith(target)) {
+        return decodeURIComponent(c.substring(target.length));
+      }
+    }
+    return null;
   };
 
   // Persistence via URL hash
@@ -212,6 +232,94 @@
 
   const rangesToText = (ranges) => {
     return ranges.map(r => `${formatDate(r.startDate)} - ${formatTime(r.endDate)}`).join('\n');
+  };
+
+  // Build ranges from a map of dayKey -> Set(slotIdx)
+  const rangesFromSelectionMap = (map) => {
+    const ranges = [];
+    for (const [dk, set] of map.entries()) {
+      if (!set || set.size === 0) continue;
+      const sorted = [...set].sort((a,b)=>a-b);
+      let start = sorted[0];
+      for (let i = 1; i <= sorted.length; i++) {
+        if (i === sorted.length || sorted[i] !== sorted[i-1] + 1) {
+          const end = sorted[i-1];
+          const day = parseDateKey(dk);
+          const startDate = new Date(day);
+          startDate.setMinutes(start * SLOT_MINUTES);
+          const endDate = new Date(day);
+          endDate.setMinutes((end + 1) * SLOT_MINUTES);
+          ranges.push({ dk, startIdx: start, endIdx: end, startDate, endDate });
+          start = sorted[i];
+        }
+      }
+    }
+    ranges.sort((a,b)=>a.startDate - b.startDate);
+    return ranges;
+  };
+
+  // Compute complement (within a bounded window) of a user's selection: per day, flip inside [minIdx, maxIdx]
+  const buildComplementMapWithinBounds = (selectionMap) => {
+    const result = new Map();
+    const startIndex = state.businessHours.startHour * SLOTS_PER_HOUR;
+    const endIndex = state.businessHours.endHour * SLOTS_PER_HOUR - 1;
+    for (const [dk, set] of selectionMap.entries()) {
+      if (!set || set.size === 0) continue;
+      const newSet = new Set(set);
+      for (let i = startIndex; i <= endIndex; i++) {
+        if (newSet.has(i)) newSet.delete(i); else newSet.add(i);
+      }
+      result.set(dk, newSet);
+    }
+    return result;
+  };
+
+  // Utility to deep-clone a Map<string, Set<number>>
+  const cloneSelectionMap = (selectionMap) => {
+    const out = new Map();
+    for (const [dk, set] of selectionMap.entries()) out.set(dk, new Set(set));
+    return out;
+  };
+
+  // Build selection map for a user
+  const getUserSelectionMap = (user) => user.selections;
+
+  // Compute NG/OK maps given global mode
+  const getUserOkNgMaps = (user) => {
+    const base = getUserSelectionMap(user);
+    if (state.selectionMode === 'ok') {
+      const okMap = base;
+      const ngMap = buildComplementMapWithinBounds(base);
+      return { okMap, ngMap };
+    } else {
+      const ngMap = base;
+      const okMap = buildComplementMapWithinBounds(base);
+      return { okMap, ngMap };
+    }
+  };
+
+  // Compute common OK/NG ranges across all users
+  const getCommonRangesForType = (type) => {
+    // Build per-user maps
+    const maps = state.users.map(u => getUserOkNgMaps(u)[type + 'Map']);
+    if (maps.length === 0) return [];
+    // Collect union of day keys that appear in any map
+    const dayKeys = new Set();
+    for (const m of maps) { for (const dk of m.keys()) dayKeys.add(dk); }
+    const resultMap = new Map();
+    for (const dk of dayKeys) {
+      let common = null;
+      for (const m of maps) {
+        const set = m.get(dk) || new Set();
+        if (common == null) common = new Set(set);
+        else {
+          for (const val of [...common]) { if (!set.has(val)) common.delete(val); }
+        }
+        if (common.size === 0) break;
+      }
+      if (common && common.size > 0) resultMap.set(dk, common);
+    }
+    return rangesFromSelectionMap(resultMap);
   };
 
   const getCommonSelectedRanges = () => {
@@ -413,17 +521,59 @@
     const textarea = document.getElementById('rangesText');
     const commonTextarea = document.getElementById('commonRangesText');
     const user = getActiveUser();
+    const userTabs = document.getElementById('rangesTabs');
+    const commonTabs = document.getElementById('commonRangesTabs');
+    const userTabType = userTabs?.querySelector('.tab.active')?.dataset.type || 'ok';
+    const commonTabType = commonTabs?.querySelector('.tab.active')?.dataset.type || 'ok';
+
     if (!user) {
-      textarea.value = '';
+      if (textarea) textarea.value = '';
       if (commonTextarea) commonTextarea.value = '';
       return;
     }
-    const ranges = getSelectedRangesForUser(user);
-    textarea.value = rangesToText(ranges);
+
+    const { okMap, ngMap } = getUserOkNgMaps(user);
+    const userOkRanges = rangesFromSelectionMap(okMap);
+    const userNgRanges = rangesFromSelectionMap(ngMap);
+    const userText = userTabType === 'ok' ? rangesToText(userOkRanges) : rangesToText(userNgRanges);
+    if (textarea) textarea.value = userText;
+
     if (commonTextarea) {
-      const commonRanges = getCommonSelectedRanges();
+      const commonRanges = commonTabType === 'ok' ? getCommonRangesForType('ok') : getCommonRangesForType('ng');
       commonTextarea.value = rangesToText(commonRanges);
     }
+  };
+
+  const updateModeButton = () => {
+    const btn = document.getElementById('toggleModeBtn');
+    if (!btn) return;
+    btn.textContent = ` ${state.selectionMode === 'ok' ? '空き時間' : 'ダメな時間'}を選択`;
+  };
+
+  const invertAllUsersSelectionsWithinBounds = () => {
+    for (const user of state.users) {
+      const newMap = buildComplementMapWithinBounds(user.selections);
+      // Merge: replace only days that had selections (bounds defined)
+      for (const [dk, newSet] of newMap.entries()) {
+        user.selections.set(dk, newSet);
+      }
+    }
+  };
+
+  // Toast helper: show centered message and fade out over 1.0s
+  const showModeToast = (message) => {
+    const el = document.createElement('div');
+    el.className = 'mode-toast';
+    el.textContent = message;
+    document.body.appendChild(el);
+    // Trigger fade after a microtask to ensure initial opacity 1 is applied
+    requestAnimationFrame(() => {
+      el.classList.add('fade-out');
+    });
+    // Remove after transition (1.0s) + a small buffer
+    setTimeout(() => {
+      el.remove();
+    }, 1100);
   };
 
   // Event handling for drag selection
@@ -638,10 +788,47 @@
     encodeStateToHash();
   });
 
+  // Mode toggle (OK/NG) with cookie persistence and inversion
+  const toggleModeBtn = document.getElementById('toggleModeBtn');
+  toggleModeBtn.addEventListener('click', () => {
+    // Flip mode
+    state.selectionMode = state.selectionMode === 'ok' ? 'ng' : 'ok';
+    setCookie('selectionMode', state.selectionMode, 3650);
+    // Invert existing selections within their bounds so visual selection reflects new semantics
+    invertAllUsersSelectionsWithinBounds();
+    refreshSelectionStyles();
+    updateRangesText();
+    updateModeButton();
+    encodeStateToHash();
+    // Show toast
+    const text = state.selectionMode === 'ok' ? '空き時間を指定するモードに切り替えました' : 'ダメな時間を指定するモードに切り替えました';
+    showModeToast(text);
+  });
+
+  // Tabs for ranges textareas
+  const setupTabs = (containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab');
+      if (!btn) return;
+      container.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      updateRangesText();
+    });
+  };
+  setupTabs('rangesTabs');
+  setupTabs('commonRangesTabs');
+
   // Init
   renderTimeHeader();
   renderGrid();
   const restored = decodeStateFromHash();
+  // Load selection mode from cookie
+  const savedMode = getCookie('selectionMode');
+  if (savedMode === 'ok' || savedMode === 'ng') {
+    state.selectionMode = savedMode;
+  }
   // Initialize controls after potential decode
   populateHourSelects();
   renderBusinessDaysInputs();
@@ -663,6 +850,7 @@
     updateRangesText();
     encodeStateToHash();
   }
+  updateModeButton();
 
   // Global grid events
   gridEl.addEventListener('pointerdown', onPointerDown);

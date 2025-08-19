@@ -14,8 +14,9 @@
     <header class="app-header">
       <div class="brand">Scheduler</div>
       <div class="actions">
-        <button id="toggleUsersBtn" class="btn">ユーザー</button>
-        <button id="addUserBtn" class="btn primary">ユーザー追加</button>
+        <button id="toggleUsersBtn" class="btn">三</button>
+        <button id="addUserBtn" class="btn">ユーザー追加</button>
+        <button id="toggleModeBtn" class="btn primary">空き時間を選択</button>
         <button id="clearSelectionsBtn" class="btn">全クリア</button>
       </div>
     </header>
@@ -30,11 +31,25 @@
       <section class="board-section">
         <div class="board-toolbar">
           <div class="range-output">
-            <label for="rangesText" class="label-with-action">選択日時（アクティブユーザー）<button id="copyRangesTextBtn" type="button" class="btn">コピー</button></label>
+            <label for="rangesText" class="label-with-action">
+              <span>選択日時（アクティブユーザー）</span>
+              <div class="tabs" id="rangesTabs">
+                <button type="button" class="tab active" data-type="ok">OK</button>
+                <button type="button" class="tab" data-type="ng">NG</button>
+              </div>
+              <button id="copyRangesTextBtn" type="button" class="btn">コピー</button>
+            </label>
             <textarea id="rangesText" readonly></textarea>
           </div>
           <div class="range-output">
-            <label for="commonRangesText" class="label-with-action">全員一致の選択日時<button id="copyCommonRangesTextBtn" type="button" class="btn">コピー</button></label>
+            <label for="commonRangesText" class="label-with-action">
+              <span>全員一致の選択日時</span>
+              <div class="tabs" id="commonRangesTabs">
+                <button type="button" class="tab active" data-type="ok">OK</button>
+                <button type="button" class="tab" data-type="ng">NG</button>
+              </div>
+              <button id="copyCommonRangesTextBtn" type="button" class="btn">コピー</button>
+            </label>
             <textarea id="commonRangesText" readonly></textarea>
           </div>
           <div class="share-output">
