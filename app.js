@@ -467,12 +467,16 @@
       }
 
       // Reset previous classes and inline styles
-      cell.classList.remove('selected', 'selected-2');
+      cell.classList.remove('selected', 'selected-2', 'is-selected');
       cell.style.background = '';
 
       if (selectedBy.length === 0) {
+        // Ensure not marked as selected
         return;
       }
+
+      // Mark as selected for cursor styling
+      cell.classList.add('is-selected');
 
       if (selectedBy.length === 1) {
         const color = selectedBy[0].color;

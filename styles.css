@@ -133,7 +133,7 @@ body {
   border-right: 1px solid #e5e7eb; padding: 8px; font-weight: 600;
 }
 .day-label.disabled { color: #9ca3af; background: #f9fafb; }
-.slot { border-left: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; min-height: 22px; cursor: crosshair; }
+.slot { border-left: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; min-height: 22px; cursor: pointer; }
 .slot:hover { background: #f9fafb; }
 .slot.disabled { background: #f3f4f6; cursor: not-allowed; }
 .slot.hidden { display: none; }
@@ -148,6 +148,9 @@ body {
 .day-row { --u-color: #22c55e; }
 .slot.selected { background: color-mix(in oklab, var(--u-color) 35%, white); }
 .slot.selected-2 { background: repeating-linear-gradient(45deg, color-mix(in oklab, var(--u-color) 45%, white) 0 8px, transparent 8px 16px); }
+
+/* Hover cursor for already-selected slots to hint deselection */
+.slot.is-selected:hover { cursor: crosshair; }
 
 /* Responsive */
 @media (max-width: 1024px) {
