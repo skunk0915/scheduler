@@ -699,8 +699,14 @@
 
   // Buttons
   document.getElementById('addUserBtn').addEventListener('click', () => {
-    const name = prompt('ユーザー名を入力', `ユーザー${state.users.length + 1}`) || `ユーザー${state.users.length + 1}`;
-    createUser(name);
+    const defaultName = `ユーザー${state.users.length + 1}`;
+    const input = prompt('ユーザー名を入力', defaultName);
+    if (input === null) {
+      // Cancel was pressed: do not add a user
+      return;
+    }
+    const finalName = input.trim() === '' ? defaultName : input.trim();
+    createUser(finalName);
   });
 
   // Copy buttons on labels
