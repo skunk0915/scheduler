@@ -23,7 +23,6 @@
 
     <main class="app-main">
       <aside class="sidebar" id="usersPanel">
-        <h2>ユーザー</h2>
         <div id="usersList" class="users-list"></div>
         <div class="legend-note">重なりは上下均等割で表示</div>
       </aside>
@@ -32,7 +31,7 @@
         <div class="board-toolbar">
           <div class="range-output">
             <label for="rangesText" class="label-with-action">
-              <span>選択日時（アクティブユーザー）</span>
+              <span>選択日時（<span id="activeUserInline"><span id="activeUserSwatch" class="user-swatch"></span><span id="activeUserName">アクティブユーザー</span></span>）</span>
               <div class="tabs" id="rangesTabs">
                 <button type="button" class="tab active" data-type="ok">OK</button>
                 <button type="button" class="tab" data-type="ng">NG</button>

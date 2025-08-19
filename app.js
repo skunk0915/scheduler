@@ -535,6 +535,9 @@
       item.appendChild(name);
       usersListEl.appendChild(item);
     }
+
+    // Update inline active user indicator beside the label
+    updateActiveUserInline();
   };
 
   const updateRangesText = () => {
@@ -549,6 +552,7 @@
     if (!user) {
       if (textarea) textarea.value = '';
       if (commonTextarea) commonTextarea.value = '';
+      updateActiveUserInline();
       return;
     }
 
@@ -562,6 +566,22 @@
       const commonRanges = commonTabType === 'ok' ? getCommonRangesForType('ok') : getCommonRangesForType('ng');
       commonTextarea.value = rangesToText(commonRanges);
     }
+
+    updateActiveUserInline();
+  };
+
+  const updateActiveUserInline = () => {
+    const nameEl = document.getElementById('activeUserName');
+    const swatchEl = document.getElementById('activeUserSwatch');
+    const user = getActiveUser();
+    if (!nameEl || !swatchEl) return;
+    if (!user) {
+      nameEl.textContent = 'アクティブユーザー';
+      swatchEl.style.background = '#e5e7eb';
+      return;
+    }
+    nameEl.textContent = user.name;
+    swatchEl.style.background = user.color;
   };
 
   const updateModeButton = () => {
@@ -871,6 +891,7 @@
     encodeStateToHash();
   }
   updateModeButton();
+  updateActiveUserInline();
 
   // Global grid events
   gridEl.addEventListener('pointerdown', onPointerDown);
