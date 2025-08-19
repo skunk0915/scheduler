@@ -17,75 +17,11 @@
     <link rel="manifest" href="manifest.webmanifest">
   </head>
   <body>
-    <header class="app-header">
-      <div class="brand">日程調整くん</div>
-      <div class="actions">
-        <button id="toggleUsersBtn" class="btn">三</button>
-        <button id="addUserBtn" class="btn">ユーザー追加</button>
-        <!-- Default selectionMode is 'ok', so the button shows the target mode ('ng') -->
-        <button id="toggleModeBtn" class="btn primary">ダメな時間を選択</button>
-        <button id="clearSelectionsBtn" class="btn">全クリア</button>
-      </div>
-    </header>
+    
 
     <main class="app-main">
-      <aside class="sidebar" id="usersPanel">
-        <div id="usersList" class="users-list"></div>
-      </aside>
 
       <section class="board-section">
-        <div class="board-toolbar">
-          <div class="range-output">
-            <label for="rangesText" class="label-with-action">
-              <span>選択日時<span id="activeUserInline"><span id="activeUserSwatch" class="user-swatch"></span><span id="activeUserName">アクティブユーザー</span></span></span>
-              <div class="tabs" id="rangesTabs">
-                <button type="button" class="tab active" data-type="ok">OK</button>
-                <button type="button" class="tab" data-type="ng">NG</button>
-              </div>
-              <button id="copyRangesTextBtn" type="button" class="btn">コピー</button>
-            </label>
-            <textarea id="rangesText" readonly></textarea>
-          </div>
-          <div class="range-output">
-            <label for="commonRangesText" class="label-with-action">
-              <span>全員一致の選択日時</span>
-              <div class="tabs" id="commonRangesTabs">
-                <button type="button" class="tab active" data-type="ok">OK</button>
-                <button type="button" class="tab" data-type="ng">NG</button>
-              </div>
-              <button id="copyCommonRangesTextBtn" type="button" class="btn">コピー</button>
-            </label>
-            <textarea id="commonRangesText" readonly></textarea>
-          </div>
-          <div class="share-output">
-            <label for="shareUrl" class="label-with-action">共有URL<button id="copyShareUrlBtn" type="button" class="btn">コピー</button></label>
-            <input id="shareUrl" type="text" readonly />
-          </div>
-        </div>
-
-        <div class="board-controls">
-          <div class="business-hours">
-            <label>営業時間</label>
-            <div class="hours-inputs">
-              <select id="bhStart"></select>
-              <span>〜</span>
-              <select id="bhEnd"></select>
-            </div>
-          </div>
-          <div class="business-days">
-            <label>営業曜日</label>
-            <div class="days-inputs" id="businessDaysInputs"></div>
-          </div>
-          <div class="date-controls">
-            <label>終日指定</label>
-            <div class="date-inputs">
-              <input id="calendarDate" type="date" />
-              <button id="allDayOkBtn" type="button" class="btn">終日OK</button>
-              <button id="allDayNgBtn" type="button" class="btn">終日NG</button>
-            </div>
-          </div>
-        </div>
-
         <div class="grid-wrapper">
           <div id="timeHeader" class="time-header"></div>
           <div id="grid" class="grid" role="grid" aria-label="15分刻みスケジュールグリッド"></div>
@@ -93,8 +29,74 @@
       </section>
     </main>
 
+    <!-- Overlay menu for users & actions -->
+    <aside id="usersPanel" class="overlay-menu" aria-hidden="true">
+      <div class="actions">
+        <button id="addUserBtn" class="btn">ユーザー追加</button>
+        <button id="toggleModeBtn" class="btn primary">ダメな時間を選択</button>
+        <button id="clearSelectionsBtn" class="btn">全クリア</button>
+      </div>
+
+      <div class="board-toolbar">
+        <div class="range-output">
+          <label for="rangesText" class="label-with-action">
+            <span>選択日時<span id="activeUserInline"><span id="activeUserSwatch" class="user-swatch"></span><span id="activeUserName">アクティブユーザー</span></span></span>
+            <div class="tabs" id="rangesTabs">
+              <button type="button" class="tab active" data-type="ok">OK</button>
+              <button type="button" class="tab" data-type="ng">NG</button>
+            </div>
+            <button id="copyRangesTextBtn" type="button" class="btn">コピー</button>
+          </label>
+          <textarea id="rangesText" readonly></textarea>
+        </div>
+        <div class="range-output">
+          <label for="commonRangesText" class="label-with-action">
+            <span>全員一致の選択日時</span>
+            <div class="tabs" id="commonRangesTabs">
+              <button type="button" class="tab active" data-type="ok">OK</button>
+              <button type="button" class="tab" data-type="ng">NG</button>
+            </div>
+            <button id="copyCommonRangesTextBtn" type="button" class="btn">コピー</button>
+          </label>
+          <textarea id="commonRangesText" readonly></textarea>
+        </div>
+        <div class="share-output">
+          <label for="shareUrl" class="label-with-action">共有URL<button id="copyShareUrlBtn" type="button" class="btn">コピー</button></label>
+          <input id="shareUrl" type="text" readonly />
+        </div>
+      </div>
+
+      <div class="board-controls">
+        <div class="business-hours">
+          <label>営業時間</label>
+          <div class="hours-inputs">
+            <select id="bhStart"></select>
+            <span>〜</span>
+            <select id="bhEnd"></select>
+          </div>
+        </div>
+        <div class="business-days">
+          <label>営業曜日</label>
+          <div class="days-inputs" id="businessDaysInputs"></div>
+        </div>
+        <div class="date-controls">
+          <label>終日指定</label>
+          <div class="date-inputs">
+            <input id="calendarDate" type="date" />
+            <button id="allDayOkBtn" type="button" class="btn">終日OK</button>
+            <button id="allDayNgBtn" type="button" class="btn">終日NG</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="usersList" class="users-list"></div>
+    </aside>
+
+    <div id="overlayBackdrop" class="overlay-backdrop" aria-hidden="true"></div>
+
     <!-- Floating controls at bottom-right: top button and selection lock -->
     <div class="floating-controls" aria-live="polite">
+      <button id="toggleUsersBtn" class="fab" type="button" aria-label="メニュー" title="メニュー">三</button>
       <button id="scrollTopBtn" class="fab hidden" type="button" aria-label="トップへ戻る" title="トップへ戻る">↑</button>
       <button id="selectionLockBtn" class="fab" type="button" aria-pressed="false" aria-label="時間選択ロック" title="時間選択ロック">🔓</button>
     </div>

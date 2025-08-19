@@ -51,7 +51,7 @@
     dragStart: null, // {dateKey, slotIndex}
     businessHours: { startHour: 9, endHour: 18 }, // [start, end) in hours
     businessDays: [1,2,3,4,5], // 0:Sun ... 6:Sat; grey-out selectable=false
-    usersPanelOpen: true,
+    usersPanelOpen: false,
     selectionMode: 'ok', // 'ok' (選択=可能) or 'ng' (選択=ダメ)
     selectionLocked: false, // true: disable selection gestures; drag scrolls page
   };
@@ -958,18 +958,24 @@
   });
 
   // Toggle users panel
-  const appMainEl = document.querySelector('.app-main');
   const usersPanelEl = document.getElementById('usersPanel');
-  document.getElementById('toggleUsersBtn').addEventListener('click', () => {
-    state.usersPanelOpen = !state.usersPanelOpen;
-    if (state.usersPanelOpen) {
-      appMainEl.classList.remove('collapsed-sidebar');
-      usersPanelEl.classList.remove('slide-out');
-    } else {
-      appMainEl.classList.add('collapsed-sidebar');
-      usersPanelEl.classList.add('slide-out');
-    }
+  const toggleUsersBtnEl = document.getElementById('toggleUsersBtn');
+  const overlayBackdropEl = document.getElementById('overlayBackdrop');
+  const toggleOverlay = (open) => {
+    state.usersPanelOpen = open;
+    usersPanelEl.classList.toggle('open', open);
+    usersPanelEl.setAttribute('aria-hidden', open ? 'false' : 'true');
+    overlayBackdropEl?.classList.toggle('open', open);
+    overlayBackdropEl?.setAttribute('aria-hidden', open ? 'false' : 'true');
     encodeStateToHash();
+  };
+  toggleUsersBtnEl?.addEventListener('click', () => toggleOverlay(!state.usersPanelOpen));
+  overlayBackdropEl?.addEventListener('click', () => toggleOverlay(false));
+  // Close on ESC
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.usersPanelOpen) {
+      toggleOverlay(false);
+    }
   });
 
   // Business hours controls
@@ -1004,6 +1010,8 @@
       cb.id = id;
       cb.value = String(d);
       cb.checked = state.businessDays.includes(d);
+      // Visual pill active state (fallback for browsers without :has)
+      label.classList.toggle('active', cb.checked);
       cb.addEventListener('change', () => {
         const val = parseInt(cb.value, 10);
         if (cb.checked) {
@@ -1012,6 +1020,7 @@
           state.businessDays = state.businessDays.filter(x => x !== val);
         }
         state.businessDays.sort((a,b)=>a-b);
+        label.classList.toggle('active', cb.checked);
         renderGrid();
         encodeStateToHash();
       });
@@ -1092,12 +1101,11 @@
   populateHourSelects();
   renderBusinessDaysInputs();
   // Reflect users panel state
-  const appMainElInit = document.querySelector('.app-main');
   const usersPanelElInit = document.getElementById('usersPanel');
-  if (!state.usersPanelOpen) {
-    appMainElInit.classList.add('collapsed-sidebar');
-    usersPanelElInit.classList.add('slide-out');
-  }
+  usersPanelElInit.classList.toggle('open', !!state.usersPanelOpen);
+  usersPanelElInit.setAttribute('aria-hidden', state.usersPanelOpen ? 'false' : 'true');
+  overlayBackdropEl?.classList.toggle('open', !!state.usersPanelOpen);
+  overlayBackdropEl?.setAttribute('aria-hidden', state.usersPanelOpen ? 'false' : 'true');
   if (!restored) {
     createUser('ユーザー1');
   } else {
