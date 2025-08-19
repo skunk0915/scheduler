@@ -180,6 +180,9 @@
     state.activeUserId = id;
     renderUsers();
     updateRangesText();
+    // Recompute selection styling so hover cursor targets only active user's selections
+    refreshSelectionStyles();
+    encodeStateToHash();
   };
 
   // Selection helpers
@@ -456,6 +459,8 @@
     // - 2+ users: show repeating stripes of involved users' colors
 
     const cells = gridEl.querySelectorAll('.slot');
+    const activeUser = getActiveUser();
+    const activeUserId = activeUser?.id ?? null;
     cells.forEach((cell) => {
       const dk = cell.dataset.dk;
       const idx = parseInt(cell.dataset.idx, 10);
@@ -467,7 +472,7 @@
       }
 
       // Reset previous classes and inline styles
-      cell.classList.remove('selected', 'selected-2', 'is-selected');
+      cell.classList.remove('selected', 'selected-2', 'is-selected', 'is-selected-active');
       cell.style.background = '';
 
       if (selectedBy.length === 0) {
@@ -475,8 +480,14 @@
         return;
       }
 
-      // Mark as selected for cursor styling
+      // Mark as selected (any user)
       cell.classList.add('is-selected');
+
+      // If selected by active user, tag for special cursor on hover
+      const isSelectedByActive = selectedBy.some(u => u.id === activeUserId);
+      if (isSelectedByActive) {
+        cell.classList.add('is-selected-active');
+      }
 
       if (selectedBy.length === 1) {
         const color = selectedBy[0].color;
