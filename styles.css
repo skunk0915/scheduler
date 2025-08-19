@@ -70,6 +70,21 @@ body {
 .user-swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #d1d5db; }
 .user-name { flex: 1; }
 
+/* Remove button at right side of user item */
+.user-remove {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.user-remove:hover {
+  color: #ef4444;
+}
+
 .board-section { display: flex; flex-direction: column; gap: 12px; }
 .board-toolbar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 .range-output textarea { width: 100%; min-height: 64px; }

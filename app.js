@@ -187,6 +187,22 @@
     encodeStateToHash();
   };
 
+  const deleteUser = (id) => {
+    const index = state.users.findIndex((u) => u.id === id);
+    if (index === -1) return;
+    // Remove the user
+    state.users.splice(index, 1);
+    // If the deleted user was active, set a new active user or null
+    if (state.activeUserId === id) {
+      state.activeUserId = state.users[0]?.id ?? null;
+    }
+    // Re-render and persist
+    renderUsers();
+    refreshSelectionStyles();
+    updateRangesText();
+    encodeStateToHash();
+  };
+
   // Selection helpers
   const getActiveUser = () => state.users.find((u) => u.id === state.activeUserId) || null;
 
@@ -531,8 +547,22 @@
       name.className = 'user-name';
       name.textContent = u.name;
 
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'user-remove';
+      removeBtn.setAttribute('aria-label', 'ユーザーを削除');
+      removeBtn.title = '削除';
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const ok = confirm('このユーザーを削除します。よろしいですか？');
+        if (!ok) return;
+        deleteUser(u.id);
+      });
+
       item.appendChild(swatch);
       item.appendChild(name);
+      item.appendChild(removeBtn);
       usersListEl.appendChild(item);
     }
 
