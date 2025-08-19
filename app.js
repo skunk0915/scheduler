@@ -281,16 +281,27 @@
 
   // Compute complement (within a bounded window) of a user's selection: per day, flip inside [minIdx, maxIdx]
   const buildComplementMapWithinBounds = (selectionMap) => {
+    // For each business day in the visible range, flip selection state within business hours.
+    // This ensures that days with no explicit selections become fully selected in the complement,
+    // which is necessary for correct "common OK/NG" calculations.
     const result = new Map();
     const startIndex = state.businessHours.startHour * SLOTS_PER_HOUR;
     const endIndex = state.businessHours.endHour * SLOTS_PER_HOUR - 1;
-    for (const [dk, set] of selectionMap.entries()) {
-      if (!set || set.size === 0) continue;
-      const newSet = new Set(set);
+
+    // Guard: if bounds are invalid, return empty
+    if (endIndex < startIndex) return result;
+
+    for (const day of days) {
+      // Respect business days; non-business days are not considered selectable
+      if (!state.businessDays.includes(day.getDay())) continue;
+      const dk = dateKey(day);
+      const baseSet = selectionMap.get(dk) || new Set();
+      const newSet = new Set();
       for (let i = startIndex; i <= endIndex; i++) {
-        if (newSet.has(i)) newSet.delete(i); else newSet.add(i);
+        if (!baseSet.has(i)) newSet.add(i);
       }
-      result.set(dk, newSet);
+      // Only record if there is at least one slot in bounds
+      if (newSet.size > 0) result.set(dk, newSet);
     }
     return result;
   };
@@ -617,15 +628,22 @@
   const updateModeButton = () => {
     const btn = document.getElementById('toggleModeBtn');
     if (!btn) return;
-    btn.textContent = ` ${state.selectionMode === 'ok' ? '空き時間' : 'ダメな時間'}を選択`;
+    // Show the mode that will be activated when clicked (target mode)
+    btn.textContent = ` ${state.selectionMode === 'ok' ? 'ダメな時間' : '空き時間'}を選択`;
   };
 
   const invertAllUsersSelectionsWithinBounds = () => {
+    const startIndex = state.businessHours.startHour * SLOTS_PER_HOUR;
+    const endIndex = state.businessHours.endHour * SLOTS_PER_HOUR - 1;
+    if (endIndex < startIndex) return;
     for (const user of state.users) {
-      const newMap = buildComplementMapWithinBounds(user.selections);
-      // Merge: replace only days that had selections (bounds defined)
-      for (const [dk, newSet] of newMap.entries()) {
-        user.selections.set(dk, newSet);
+      for (const [dk, set] of user.selections.entries()) {
+        // Preserve out-of-bounds selections; flip only within bounds
+        const flipped = new Set(set);
+        for (let i = startIndex; i <= endIndex; i++) {
+          if (flipped.has(i)) flipped.delete(i); else flipped.add(i);
+        }
+        user.selections.set(dk, flipped);
       }
     }
   };
