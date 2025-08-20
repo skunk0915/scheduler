@@ -22,9 +22,14 @@
     <main class="app-main">
 
       <section class="board-section">
-        <div class="grid-wrapper">
-          <div id="timeHeader" class="time-header"></div>
-          <div id="grid" class="grid" role="grid" aria-label="15分刻みスケジュールグリッド"></div>
+        <div class="grid-wrapper js-leftpin">
+          <div class="time-header">
+            <div class="corner">日/時間</div>
+            <div class="time-header-rail"><div id="timeHeader" class="time-header-inner"></div></div>
+          </div>
+          <div class="grid-scroll">
+            <div id="grid" class="grid" role="grid" aria-label="15分刻みスケジュールグリッド"></div>
+          </div>
         </div>
       </section>
     </main>

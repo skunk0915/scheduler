@@ -404,14 +404,12 @@
   // Rendering
   const timeHeaderEl = document.getElementById('timeHeader');
   const gridEl = document.getElementById('grid');
+  const gridScrollEl = document.querySelector('.grid-scroll');
+  const timeHeaderRailEl = document.querySelector('.time-header-rail');
   const usersListEl = document.getElementById('usersList');
 
   const renderTimeHeader = () => {
     timeHeaderEl.innerHTML = '';
-    const corner = document.createElement('div');
-    corner.className = 'corner';
-    corner.textContent = '日/時間';
-    timeHeaderEl.appendChild(corner);
 
     let visibleSlotsCount = 0;
     for (let h = 0; h < HOURS_PER_DAY; h++) {
@@ -426,7 +424,85 @@
     // Update CSS var for visible slots
     const totalVisible = (state.businessHours.endHour - state.businessHours.startHour) * SLOTS_PER_HOUR;
     timeHeaderEl.style.setProperty('--visible-slots', String(totalVisible));
+    // Recompute rail width now that cells exist
+    sizeHeaderRail();
   };
+
+  // Keep header horizontally aligned with the grid when grid-scroll is scrolled
+  const syncHeaderScroll = () => {
+    if (!timeHeaderEl || !gridScrollEl) return;
+    const x = Math.round(gridScrollEl.scrollLeft);
+    // translate the inner header to match scroll position, rounded to device pixels
+    timeHeaderEl.style.transform = `translate3d(${-x}px, 0, 0)`;
+    // Also pin day-labels visually by translating them equal and opposite
+    const rows = gridEl.querySelectorAll('.day-row');
+    rows.forEach((row) => {
+      const label = row.querySelector('.day-label');
+      if (label) {
+        label.style.transform = `translate3d(${x}px, 0, 0)`;
+      }
+    });
+  };
+  gridScrollEl?.addEventListener('scroll', syncHeaderScroll, { passive: true });
+  // Initialize position once
+  syncHeaderScroll();
+  window.addEventListener('resize', syncHeaderScroll);
+
+  // Size header rail to match actual content width (visible slots * slot-width)
+  const sizeHeaderRail = () => {
+    if (!timeHeaderRailEl || !gridScrollEl || !timeHeaderEl) return;
+    // Prefer exact width from grid content to avoid PC whitespace drift
+    const firstRow = gridEl.querySelector('.day-row');
+    const dayLabel = firstRow?.querySelector('.day-label');
+    if (firstRow && dayLabel) {
+      const rowScrollWidth = firstRow.scrollWidth; // includes label + slots (borders included)
+      const labelWidth = Math.round(dayLabel.getBoundingClientRect().width);
+      const slotsWidth = Math.max(0, rowScrollWidth - labelWidth);
+      timeHeaderRailEl.style.width = `${slotsWidth}px`;
+      return;
+    }
+    // Fallback: compute from visible slot count and header cell width
+    const totalVisible = (state.businessHours.endHour - state.businessHours.startHour) * SLOTS_PER_HOUR;
+    const sampleCell = timeHeaderEl.querySelector('.cell');
+    let slotPx = 24;
+    if (sampleCell) {
+      slotPx = Math.max(1, Math.round(sampleCell.getBoundingClientRect().width));
+    } else {
+      const cs = getComputedStyle(document.documentElement);
+      const cssWidth = parseFloat(cs.getPropertyValue('--slot-width'));
+      if (Number.isFinite(cssWidth) && cssWidth > 0) slotPx = Math.round(cssWidth);
+    }
+    const railWidth = totalVisible * slotPx;
+    timeHeaderRailEl.style.width = `${railWidth}px`;
+  };
+  sizeHeaderRail();
+  window.addEventListener('resize', sizeHeaderRail);
+
+  // Allow horizontal pan on the header to scroll the grid
+  const headerContainerEl = document.querySelector('.time-header');
+  let headerPanActive = false;
+  let headerPanStartX = 0;
+  let headerPanStartScrollLeft = 0;
+  headerContainerEl?.addEventListener('pointerdown', (e) => {
+    if (!gridScrollEl) return;
+    headerPanActive = true;
+    headerPanStartX = e.clientX;
+    headerPanStartScrollLeft = gridScrollEl.scrollLeft;
+    try { headerContainerEl.setPointerCapture?.(e.pointerId); } catch {}
+  });
+  headerContainerEl?.addEventListener('pointermove', (e) => {
+    if (!headerPanActive || !gridScrollEl) return;
+    e.preventDefault();
+    const dx = e.clientX - headerPanStartX;
+    gridScrollEl.scrollLeft = clamp(headerPanStartScrollLeft - dx, 0, gridScrollEl.scrollWidth);
+  });
+  const endHeaderPan = (e) => {
+    if (!headerPanActive) return;
+    headerPanActive = false;
+    try { headerContainerEl.releasePointerCapture?.(e.pointerId); } catch {}
+  };
+  headerContainerEl?.addEventListener('pointerup', endHeaderPan);
+  headerContainerEl?.addEventListener('pointercancel', endHeaderPan);
 
   const generateDays = () => {
     const today = new Date();
@@ -467,16 +543,15 @@
       row.appendChild(label);
 
       for (let i = 0; i < SLOTS_PER_DAY; i++) {
+        const hour = Math.floor(i / SLOTS_PER_HOUR);
+        const inHours = hour >= state.businessHours.startHour && hour < state.businessHours.endHour;
+        if (!inHours) continue; // omit off-hours entirely to keep header/grid indices aligned
+
         const slot = document.createElement('div');
         slot.className = 'slot';
         slot.dataset.dk = dk;
         slot.dataset.idx = String(i);
-        const hour = Math.floor(i / SLOTS_PER_HOUR);
-        const inHours = hour >= state.businessHours.startHour && hour < state.businessHours.endHour;
         const isBiz = isBusinessDay;
-        if (!inHours) {
-          slot.classList.add('hidden');
-        }
         if (!isBiz) {
           slot.classList.add('disabled');
         }

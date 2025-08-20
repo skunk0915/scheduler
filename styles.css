@@ -9,6 +9,11 @@ body {
   background: #f9fafb;
 }
 
+:root {
+  --slot-width: 24px;
+  --day-label-width: 100px;
+}
+
 .brand { font-weight: 700; }
 .actions { display: flex; gap: 8px; }
 
@@ -154,21 +159,54 @@ input, textarea, select, button { font-size: 16px; }
 .grid-wrapper {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
+  overflow: visible;
+  background: white;
+}
+
+/* Horizontal scrolling container for the grid only (not the sticky header) */
+.grid-scroll {
   overflow-x: auto;
   overflow-y: visible;
-  background: white;
+  -webkit-overflow-scrolling: touch;
 }
 .time-header {
-  position: sticky; top: 0; z-index: 1000;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   display: grid;
-  grid-template-columns: 100px repeat(var(--visible-slots, 96), minmax(24px, 1fr));
-  align-items: stretch; border-bottom: 1px solid #e5e7eb;
+  grid-template-columns: var(--day-label-width) 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid #e5e7eb;
   background: white;
+  overflow: hidden;
 }
-.time-header .corner { position: sticky; left: 0; background: white; border-right: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; font-weight: 600; }
-.time-header .cell { border-left: 1px solid #f3f4f6; padding: 6px 4px; font-size: 12px; text-align: center; color: #6b7280; }
-.time-header .cell.hour { color: #111827; font-weight: 600; background: #fafafa; }
-.time-header .cell.hidden { display: none; }
+.time-header .corner {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+.time-header-rail {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inner header that we translate to match horizontal scroll */
+.time-header-inner {
+  will-change: transform;
+  display: grid;
+  grid-template-columns: repeat(var(--visible-slots, 96), var(--slot-width));
+  align-items: stretch;
+}
+.time-header-inner .corner { position: sticky; left: 0; background: white; border-right: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+.time-header-inner .cell { border-left: 1px solid #f3f4f6; padding: 6px 4px; font-size: 12px; text-align: center; color: #6b7280; }
+.time-header-inner .cell.hour { color: #111827; font-weight: 600; background: #fafafa; }
+.time-header-inner .cell.hidden { display: none; }
 
 #grid {
   /* display: grid;
@@ -176,13 +214,19 @@ input, textarea, select, button { font-size: 16px; }
 }
 .day-row {
   display: grid;
-  grid-template-columns: 100px repeat(var(--visible-slots, 96), minmax(24px, 1fr));
+  grid-template-columns: var(--day-label-width) repeat(var(--visible-slots, 96), var(--slot-width));
 }
 .day-label {
   position: sticky; left: 0; background: #ffffff; z-index: 1;
   border-right: 1px solid #e5e7eb; padding: 8px; font-weight: 600;
   /* Always allow vertical scroll gesture from day label */
   overscroll-behavior-y: contain;
+}
+.js-leftpin .day-label {
+  position: relative;
+  left: auto;
+  z-index: 2; /* ensure above slots */
+  will-change: transform;
 }
 .day-label.disabled { color: #9ca3af; background: #f9fafb; }
 .slot { border-left: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6; min-height: 22px; cursor: pointer; }
@@ -192,7 +236,7 @@ input, textarea, select, button { font-size: 16px; }
 .slot.off-hours { background: #fafafa; }
 
 /* Hour boundary (":00") lines */
-.time-header .cell.hour { border-left-color: #ccc; }
+.time-header-inner .cell.hour { border-left-color: #ccc; }
 /* The first slot of each hour has a black left border. There is one day label cell before slots, so use 4n+2. */
 .day-row > .slot:nth-child(4n+2) { border-left-color: #ccc; }
 
@@ -211,8 +255,10 @@ input, textarea, select, button { font-size: 16px; }
   .app-main { grid-template-columns: 1fr; }
   .actions { flex-wrap: wrap; }
   .board-toolbar { grid-template-columns: 1fr; }
-  .time-header { grid-template-columns: 80px repeat(var(--visible-slots, 96), minmax(16px, 1fr)); }
-  .day-row { grid-template-columns: 80px repeat(var(--visible-slots, 96), minmax(16px, 1fr)); }
+  :root { --slot-width: 16px; --day-label-width: 80px; }
+  .time-header { grid-template-columns: var(--day-label-width) 1fr; }
+  .time-header-inner { grid-template-columns: repeat(var(--visible-slots, 96), var(--slot-width)); }
+  .day-row { grid-template-columns: var(--day-label-width) repeat(var(--visible-slots, 96), var(--slot-width)); }
   .day-label { font-size: 12px; }
   .slot { min-height: 20px; }
   .board-controls { grid-template-columns: 1fr; }
